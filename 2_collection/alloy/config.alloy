@@ -1,0 +1,112 @@
+// ============================================================================
+// Alloy Pipeline Configuration
+// ============================================================================
+// Pipeline: obsbox → OTLP receiver → gauge transform → cumulative processor → 
+//           Prometheus exporter → VictoriaMetrics
+// Self-monitoring: Alloy internal metrics → VictoriaMetrics
+// ============================================================================
+
+// ============================================================================
+// SECTION: Configuration Header
+// ============================================================================
+
+livedebugging {
+  enabled = true
+}
+
+// ============================================================================
+// SECTION: OTLP Receivers
+// ============================================================================
+// Receives metrics from obsbox via OpenTelemetry Protocol
+
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    metrics = [otelcol.processor.transform.accumulate_gauge.input]
+  }
+}
+
+// ============================================================================
+// SECTION: Metric Processors
+// ============================================================================
+// Transform gauge metrics to cumulative counters
+// Step 1: Convert gauge to delta sum
+// Step 2: Accumulate delta to cumulative counter
+
+otelcol.processor.transform "accumulate_gauge" {
+  error_mode = "ignore"
+  
+  metric_statements {
+    context = "metric"
+    statements = [
+      `convert_gauge_to_sum("delta", true) where name == "ibmmq.queue.mqput.rate"`,
+      `set(name, "ibmmq.queue.mqput.rate.accumulated") where name == "ibmmq.queue.mqput.rate"`,
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.deltatocumulative.default.input]
+  }
+}
+
+otelcol.processor.deltatocumulative "default" {
+  output {
+    metrics = [otelcol.exporter.prometheus.victoriametrics.input]
+  }
+}
+
+// ============================================================================
+// SECTION: Exporters
+// ============================================================================
+// Export pipeline metrics to VictoriaMetrics via Prometheus remote write
+
+otelcol.exporter.prometheus "victoriametrics" {
+  forward_to = [prometheus.remote_write.victoriametrics.receiver]
+}
+
+prometheus.remote_write "victoriametrics" {
+  endpoint {
+    url = "http://victoriametrics:8428/api/v1/write"
+
+    queue_config {
+      batch_send_deadline = "100ms"
+    }
+  }
+}
+
+// ============================================================================
+// SECTION: Self-Monitoring
+// ============================================================================
+// Collect Alloy's internal metrics and export to VictoriaMetrics
+
+prometheus.exporter.self "alloy" {
+}
+
+prometheus.scrape "alloy_internal" {
+  targets = prometheus.exporter.self.alloy.targets
+
+  forward_to = [prometheus.relabel.alloy_metrics.receiver]
+}
+
+prometheus.relabel "alloy_metrics" {
+  forward_to = [prometheus.remote_write.alloy_monitoring.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex = "alloy_.*"
+    action = "keep"
+  }
+}
+
+prometheus.remote_write "alloy_monitoring" {
+  endpoint {
+    url = "http://victoriametrics:8428/api/v1/write"
+
+    queue_config {
+      batch_send_deadline = "100ms"
+    }
+  }
+}

@@ -15,7 +15,7 @@ services:
     image: docker.io/grafana/alloy:latest
     container_name: alloy-testbench-alloy
     volumes:
-      - ./2_collection/config.alloy:/etc/alloy/config.alloy:ro
+      - ./2_collection/alloy:/etc/alloy:ro
     command:
       - run
       - /etc/alloy/config.alloy
