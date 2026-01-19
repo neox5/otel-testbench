@@ -2,7 +2,7 @@ simulation:
   clocks:
     clk_mqput:
       type: periodic
-      interval: 20ms
+      interval: 200ms
 
   sources:
     src_mqput_events:
@@ -59,7 +59,7 @@ export:
   otel:
     enabled: true
     host: alloy
-    interval: 10ms
+    interval: 100ms
     resource:
       service.name: obsbox
       service.version: 0.1.0

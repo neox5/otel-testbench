@@ -325,7 +325,7 @@
           },
           "editorMode": "code",
           "expr": "ibmmq_queue_mqput_count_total",
-          "interval": "1s",
+          "interval": "100ms",
           "legendFormat": "mqput_total (original counter)",
           "range": true,
           "refId": "A"
@@ -336,7 +336,7 @@
             "uid": "victoria_metrics"
           },
           "expr": "ibmmq_queue_mqput2_rate",
-          "interval": "1s",
+          "interval": "100ms",
           "legendFormat": "mqput_rate (original gauge)",
           "refId": "B"
         },
@@ -347,7 +347,7 @@
           },
           "editorMode": "code",
           "expr": "ibmmq_queue_mqput_rate_accumulated_total",
-          "interval": "1s",
+          "interval": "100ms",
           "legendFormat": "mqput_rate_accumulated (gauge→counter)",
           "range": true,
           "refId": "C"
@@ -362,7 +362,7 @@
           "expr": "clamp_min(ibmmq_queue_mqput_count_total - ibmmq_queue_mqput_rate_accumulated_total, 0)",
           "hide": false,
           "instant": false,
-          "interval": "1s",
+          "interval": "100ms",
           "legendFormat": "diff",
           "range": true,
           "refId": "D"
