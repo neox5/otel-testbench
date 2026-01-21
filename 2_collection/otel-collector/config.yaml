@@ -81,6 +81,7 @@ service:
       level: detailed
       readers:
         - periodic:
+            interval: 5
             exporter:
               otlp:
                 protocol: http/protobuf
